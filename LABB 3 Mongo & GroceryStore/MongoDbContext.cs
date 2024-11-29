@@ -81,8 +81,18 @@ namespace Simple.Store
         {
             try
             {
+                // Retrieve products from the DB
                 var products = await _productsCollection.Find(_ => true).ToListAsync();
                 Console.WriteLine($"Retrieved {products.Count} products.");
+
+                // Update product prices in EUR and CHF based on SEK
+                foreach (var product in products)
+                {
+                    // Convert prices from SEK to EUR and CHF using the hardcoded converter
+                    product.PriceEUR = CurrencyConverter.ConvertToEUR(product.PriceSEK, "SEK");
+                    product.PriceCHF = CurrencyConverter.ConvertToCHF(product.PriceSEK, "SEK");
+                }
+
                 return products;
             }
             catch (Exception ex)
@@ -92,18 +102,28 @@ namespace Simple.Store
             }
         }
 
-        public void AddProductToDb(Product product)
+
+        public async Task AddProductToDb(Product product)
         {
             try
             {
-                var existingProduct = _productsCollection.Find(p => p.Name.Equals(product.Name, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+                // Convert the price from SEK to EUR and CHF before saving the product to the database
+                product.PriceEUR = CurrencyConverter.ConvertToEUR(product.PriceSEK, "SEK");
+                product.PriceCHF = CurrencyConverter.ConvertToCHF(product.PriceSEK, "SEK");
+
+                // Check if the product already exists in the DB
+                var existingProduct = await _productsCollection
+                    .Find(p => p.Name.Equals(product.Name, StringComparison.OrdinalIgnoreCase))
+                    .FirstOrDefaultAsync();
+
                 if (existingProduct != null)
                 {
                     Console.WriteLine($"Product '{product.Name}' already exists.");
                     return;
                 }
 
-                _productsCollection.InsertOne(product);
+                // Insert the product into the database
+                await _productsCollection.InsertOneAsync(product);
                 Console.WriteLine($"Product '{product.Name}' added successfully.");
             }
             catch (Exception ex)

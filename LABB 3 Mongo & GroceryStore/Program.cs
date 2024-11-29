@@ -493,7 +493,7 @@ namespace Simple.Store
             }
         }
 
-        public static void ShowProductManagementMenu()
+        public static async void ShowProductManagementMenu()
         {
             Console.WriteLine("Product Management:");
             Console.WriteLine("1. Add Product");
@@ -520,7 +520,7 @@ namespace Simple.Store
                     };
 
                     // Add the product to the database
-                    dbContext.AddProductToDb(newProduct);
+                   await dbContext.AddProductToDb(newProduct);
 
                     // Optional: Fetch the product back from the database to confirm
                     var addedProduct = dbContext.GetProductByName(productName); // You can create this helper method if needed
@@ -557,5 +557,7 @@ namespace Simple.Store
                     break;
             }
         }
+
+
     }
 }
