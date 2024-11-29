@@ -184,6 +184,7 @@ namespace Simple.Store
             }
         }
 
+
         // Process payment for cart
         public static void PayForItems()
         {
