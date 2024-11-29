@@ -557,9 +557,5 @@ namespace Simple.Store
                     break;
             }
         }
-
-
-
-
     }
 }

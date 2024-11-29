@@ -10,23 +10,23 @@ namespace Simple.Store
 {
     public class Product
     {
-        [BsonId] // Map to MongoDB's "_id" field
+        [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
-        public string Id { get; set; } // MongoDB _id field (string representation)
+        public string Id { get; set; }
 
-        [BsonElement("Name")] // Maps to "Name" in MongoDB
+        [BsonElement("Name")]
         public string Name { get; set; }
 
-        [BsonElement("PriceSEK")] // Maps to "PriceSEK" in MongoDB
+        [BsonElement("PriceSEK")]
         public decimal PriceSEK { get; set; }
 
-        [BsonElement("PriceEUR")] // Maps to "PriceEUR" in MongoDB
+        [BsonElement("PriceEUR")]
         public decimal PriceEUR { get; set; }
 
-        [BsonElement("PriceCHF")] // Maps to "PriceCHF" in MongoDB
+        [BsonElement("PriceCHF")]
         public decimal PriceCHF { get; set; }
 
-        [BsonElement("Quantity")] // Maps to "Quantity" in MongoDB
+        [BsonElement("Quantity")]
         public int Quantity { get; set; }
 
         // MongoDB setup
@@ -50,7 +50,7 @@ namespace Simple.Store
         public override int GetHashCode() => HashCode.Combine(Name, PriceSEK);
 
         // Add a product to the cart
-        public static void AddProductToCart(Product product, int quantity)
+        public static async Task AddProductToCart(MongoDbContext dbContext, string customerName, Product product, int quantity)
         {
             if (quantity <= 0)
             {
@@ -58,21 +58,31 @@ namespace Simple.Store
                 return;
             }
 
-            lock (Cart)
+            // Fetch the cart item for this product
+            var cartItem = await dbContext.GetCartItems(customerName);
+            var existingItem = cartItem.FirstOrDefault(item => item.ProductName == product.Name);
+
+            if (existingItem != null)
             {
-                if (Cart.ContainsKey(product))
+                // Update the existing cart item
+                existingItem.Quantity += quantity;
+                await dbContext.UpdateCartItem(existingItem);
+            }
+            else
+            {
+                // Add new cart item
+                var newCartItem = new CartItem
                 {
-                    Cart[product] += quantity;
-                    Console.WriteLine($"Updated {product.Name} to {Cart[product]} pcs in cart.");
-                }
-                else
-                {
-                    Cart[product] = quantity;
-                    Console.WriteLine($"Added {product.Name} ({quantity} pcs) to the cart.");
-                }
+                    CustomerName = customerName,
+                    ProductName = product.Name,
+                    Quantity = quantity,
+                    //PriceSEK = product.PriceSEK
+                };
+
+                await dbContext.AddCartItem(newCartItem);
             }
 
-            ViewProductsInCart();
+            Console.WriteLine($"Updated {product.Name} in the cart.");
         }
 
         // Clear the cart
