@@ -70,7 +70,8 @@ namespace Simple.Store
                 Console.WriteLine("\nChoose an option:");
                 Console.WriteLine("1) Register new customer");
                 Console.WriteLine("2) Log in");
-                Console.WriteLine("3) Exit");
+                Console.WriteLine("3) Inventory Management");
+                Console.WriteLine("4) Exit");
                 Console.Write("\nSelect an option: ");
 
                 switch (Console.ReadLine())
@@ -97,8 +98,14 @@ namespace Simple.Store
                             Console.WriteLine("Invalid credentials.");
                         }
                         return true;
-
+                    
                     case "3":
+                        Console.WriteLine("");
+                        ShowProductManagementMenu();
+                        isLoggedIn = false;
+                        return true;
+
+                    case "4":
                         Console.WriteLine("Exiting the application...");
                         return false; // Close the application
 
@@ -152,7 +159,7 @@ namespace Simple.Store
             }
         }
 
-
+        // Method to register a new custumer 
         private static void RegisterNewCustomer()
         {
             // Get customer details and handle registration
@@ -177,25 +184,18 @@ namespace Simple.Store
             Console.WriteLine($"Welcome, {loggedInCustomer.Name}! You are now logged in.");
         }
 
+        // Method to start the shopping experience
         private static async Task StartShopping()
         {
             var cart = new Dictionary<Product, int>(); // Initialize cart
-
-            // Fetch products asynchronously from MongoDB (only from MongoDB)
             List<Product> productsAvailable = await Product.GetProductsFromMongoDB();
 
-            // Debug log to check if products are available
-            Console.WriteLine($"Retrieved {productsAvailable.Count} products from MongoDB.");
-
-            if (productsAvailable.Count == 0)
+            if (!productsAvailable.Any())
             {
                 Console.WriteLine("No products available in the database.");
-                return; // Exit if no products
+                return;
             }
 
-            bool shopping = true;
-
-            // Show products once
             Console.WriteLine("\nAvailable products:");
             for (int i = 0; i < productsAvailable.Count; i++)
             {
@@ -203,60 +203,39 @@ namespace Simple.Store
                 Console.WriteLine($"{i + 1}. {product.Name} - {product.PriceSEK:F2} SEK / {product.PriceEUR:F2} EUR / {product.PriceCHF:F2} CHF");
             }
 
-            // Shopping loop
-            while (shopping)
+            while (true)
             {
-                Console.Write("\nEnter: \n-the number of the product (1\\2\\3\\4\\5) you want to add to the cart\n-or type 'pay' to finish shopping,\n-or 'save' to save cart for later: ");
-                string input = Console.ReadLine();
+                Console.Write("\nEnter: \n-product number to add to the cart\n-'pay' to finish shopping\n-'save' to save the cart: ");
+                string input = Console.ReadLine()?.Trim().ToLower();
 
-                if (int.TryParse(input, out int productIndex) && productIndex > 0 && productIndex <= productsAvailable.Count)
+                if (int.TryParse(input, out int productIndex) && productIndex >= 1 && productIndex <= productsAvailable.Count)
                 {
                     Product selectedProduct = productsAvailable[productIndex - 1];
-                    if (cart.ContainsKey(selectedProduct))
+                    AddToCart(cart, selectedProduct);
+                }
+                else if (input == "save")
+                {
+                    if (cart.Count == 0)
                     {
-                        cart[selectedProduct]++;
-                        Console.WriteLine($"{selectedProduct.Name} quantity increased in the cart.");
+                        Console.WriteLine("Cart is empty, nothing to save.");
                     }
                     else
                     {
-                        cart[selectedProduct] = 1;
-                        Console.WriteLine($"{selectedProduct.Name} added to the cart.");
-                    }
-                }
-                else if (input.ToLower() == "save")
-                {
-                    try
-                    {
-                        SaveCartToMongoDb(cart, loggedInCustomer, dbContext);
+                        await SaveCartToMongoDb(cart, loggedInCustomer, dbContext);
                         Console.WriteLine("Cart saved for later. Returning to main menu...");
-                        shopping = false; // Exit shopping
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine($"Error saving cart: {ex.Message}");
-                        Console.ResetColor();
+                        return; // Exit shopping
                     }
                 }
-                else if (input.ToLower() == "pay")
+                else if (input == "pay")
                 {
-                    try
+                    if (cart.Count == 0)
                     {
-                        Console.WriteLine("\nYour cart summary:");
-                        foreach (var item in cart)
-                        {
-                            Console.WriteLine($"{item.Key.Name} x{item.Value} - {item.Key.PriceSEK * item.Value:F2} SEK");
-                        }
-
-                        Console.WriteLine("\nProceeding to checkout...");
-                        PayForItems(cart, loggedInCustomer);
-                        shopping = false; // Exit shopping
+                        Console.WriteLine("Cart is empty, nothing to pay for.");
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine($"Error during payment: {ex.Message}");
-                        Console.ResetColor();
+                        await PayForItems(cart, loggedInCustomer, dbContext);
+                        return; // Exit shopping
                     }
                 }
                 else
@@ -266,7 +245,22 @@ namespace Simple.Store
             }
         }
 
+        // Method to add items to the cart
+        private static void AddToCart(Dictionary<Product, int> cart, Product product)
+        {
+            if (cart.ContainsKey(product))
+            {
+                cart[product]++;
+                Console.WriteLine($"{product.Name} quantity increased in the cart.");
+            }
+            else
+            {
+                cart[product] = 1;
+                Console.WriteLine($"{product.Name} added to the cart.");
+            }
+        }
 
+        // Method to save the cart to MongoDb
         public static async Task SaveCartToMongoDb(Dictionary<Product, int> cart, Customer loggedInCustomer, MongoDbContext dbContext)
         {
             if (cart == null || cart.Count == 0)
@@ -317,13 +311,13 @@ namespace Simple.Store
             }
         }
 
-
-        public static async Task PayForItems(Dictionary<Product, int> cart, Customer loggedInCustomer)
+        // Mehod to pay for the items 
+        public static async Task PayForItems(Dictionary<Product, int> cart, Customer loggedInCustomer, MongoDbContext dbContext)
         {
             decimal total = cart.Sum(item => item.Key.PriceSEK * item.Value);
             Console.WriteLine($"Total price: {total:F2} SEK");
 
-            Console.WriteLine("Proceed with payment? (y/n)");
+            Console.WriteLine("\nProceed with payment? (y/n)");
             string input = Console.ReadLine()?.ToLower();
 
             if (input == "y")
@@ -342,26 +336,17 @@ namespace Simple.Store
 
                 // Clear the cart after successful payment
                 cart.Clear();
-                Console.WriteLine("Cart has been cleared. Thank you for your purchase!");
+                Console.WriteLine("\nCart has been cleared. Thank you for your purchase!");
             }
             else
             {
-                Console.WriteLine("Payment canceled. Returning to shopping...");
+                Console.WriteLine("\nPayment canceled. Returning to shopping...");
             }
         }
 
-
+        // Method to update the total spent in MongoDb
         public static async Task UpdateLoggedInCustomerTotalSpent(Customer loggedInCustomer, MongoDbContext dbContext)
         {
-            // Ensure that the customer collection is initialized
-            if (Customer.CustomersCollection == null) // Access via Customer class
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error: Customer collection is not initialized.");
-                Console.ResetColor();
-                return;
-            }
-
             // Ensure the loggedInCustomer is not null
             if (loggedInCustomer == null)
             {
@@ -380,8 +365,8 @@ namespace Simple.Store
                 var filter = Builders<Customer>.Filter.Eq(c => c.Name, loggedInCustomer.Name);
                 var update = Builders<Customer>.Update.Set(c => c.TotalSpent, loggedInCustomer.TotalSpent);
 
-                // Perform the update operation asynchronously
-                var result = await Customer.CustomersCollection.UpdateOneAsync(filter, update);
+                // Perform the update operation asynchronously using the public property
+                var result = await dbContext.CustomersCollection.UpdateOneAsync(filter, update); 
 
                 // Check if the update was successful
                 if (result.ModifiedCount > 0)
@@ -405,7 +390,7 @@ namespace Simple.Store
             }
         }
 
-
+        // Method to view the content of the cart when items are saved and not purchased
         private static async Task ViewCart()
         {
             // Get the cart items for the logged-in customer using the async method
@@ -477,7 +462,6 @@ namespace Simple.Store
             }
         }
 
-
         // This method simulates the payment process.
         private static bool ProcessPayment(decimal amount)
         {
@@ -485,6 +469,7 @@ namespace Simple.Store
             return true; // Return true to indicate payment was successful.
         }
 
+        // Method to display all the info of the logged in customer
         private static void DisplayAccountInformation()
         {
             Console.WriteLine($"Customer: {loggedInCustomer.Name}");
@@ -492,6 +477,7 @@ namespace Simple.Store
             Console.WriteLine($"Total Spent: {loggedInCustomer.TotalSpent:C}");
         }
 
+        // Method to log in 
         private static bool LogIn(string username, string password)
         {
             loggedInCustomer = dbContext.GetCustomerByName(username);
@@ -506,5 +492,74 @@ namespace Simple.Store
                 return false;
             }
         }
+
+        public static void ShowProductManagementMenu()
+        {
+            Console.WriteLine("Product Management:");
+            Console.WriteLine("1. Add Product");
+            Console.WriteLine("2. Remove Product");
+            Console.WriteLine("3. Exit");
+
+            string choice = Console.ReadLine();
+
+            switch (choice)
+            {
+                case "1":
+                    // Add Product
+                    Console.WriteLine("Enter product name:");
+                    string productName = Console.ReadLine();
+
+                    Console.WriteLine("Enter product price in SEK:");
+                    decimal productPriceSEK = decimal.Parse(Console.ReadLine());
+
+                    // Create a new product instance
+                    var newProduct = new Product
+                    {
+                        Name = productName,
+                        PriceSEK = productPriceSEK
+                    };
+
+                    // Add the product to the database
+                    dbContext.AddProductToDb(newProduct);
+
+                    // Optional: Fetch the product back from the database to confirm
+                    var addedProduct = dbContext.GetProductByName(productName); // You can create this helper method if needed
+
+                    if (addedProduct != null)
+                    {
+                        Console.WriteLine($"Product '{addedProduct.Name}' was added successfully with a price of {addedProduct.PriceSEK} SEK.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("There was an issue adding the product to the database.");
+                    }
+
+                    break;
+
+                case "2":
+                    // Remove Product
+                    Console.WriteLine("Enter the name of the product to remove:");
+                    string removeProductName = Console.ReadLine();
+
+                    // Call the RemoveProduct method
+                    dbContext.RemoveProductFromDb(removeProductName);
+
+                    // Refresh the product list after removing
+                    var refreshedProducts = dbContext.GetProducts().Result; 
+                    break;
+
+                case "3":
+                    Console.WriteLine("Exiting...");
+                    break;
+
+                default:
+                    Console.WriteLine("Invalid choice. Please try again.");
+                    break;
+            }
+        }
+
+
+
+
     }
 }

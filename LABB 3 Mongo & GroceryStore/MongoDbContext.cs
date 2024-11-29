@@ -10,6 +10,9 @@ namespace Simple.Store
         private readonly IMongoCollection<Customer> _customersCollection;
         private readonly IMongoCollection<Product> _productsCollection;
         private readonly IMongoCollection<CartItem> _cartCollection;
+        
+        public IMongoCollection<Customer> CustomersCollection => _customersCollection; // public
+        public IMongoCollection<Product> ProductsCollection => _productsCollection;
 
         // Constructor to initialize MongoDB context
         public MongoDbContext(string dbName)
@@ -103,7 +106,6 @@ namespace Simple.Store
             }
         }
 
-
         // Add a product to the database
         public void AddProduct(Product product)
         {
@@ -117,18 +119,98 @@ namespace Simple.Store
             return _productsCollection.Find(p => p.Name.Equals(productName, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
         }
 
+        public void AddProductToDb(Product product)
+        {
+            // Check if the product already exists in the database based on its name
+            var existingProduct = _productsCollection.Find(p => p.Name.Equals(product.Name, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+
+            if (existingProduct != null)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"Product '{product.Name}' already exists.");
+                Console.ResetColor();
+                return; // Exit early if the product already exists
+            }
+
+            // If the product does not exist, insert the new product into the databaseF
+            _productsCollection.InsertOne(product);
+            var insertedProduct = _productsCollection
+            .Find(p => p.Name == product.Name)
+            .FirstOrDefault();
+            if (insertedProduct != null)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"Product '{insertedProduct.Name}' was added to the database.");
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Product insertion failed.");
+                Console.ResetColor();
+            }
+
+            // Provide feedback to the user
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"Product '{product.Name}' added successfully.");
+            Console.ResetColor();
+        }
+
+        public void RemoveProductFromDb(string productName)
+        {
+            var result = _productsCollection.DeleteOne(p => p.Name.Equals(productName, StringComparison.OrdinalIgnoreCase));
+
+            if (result.DeletedCount > 0)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"Product '{productName}' removed successfully.");
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"Product '{productName}' not found.");
+                Console.ResetColor();
+            }
+        }
+
+        public void UpdateProduct(Product product)
+        {
+            try
+            {
+                // Build an update definition for the fields you want to update
+                var update = Builders<Product>.Update
+                    .Set(p => p.Name, product.Name)
+                    .Set(p => p.PriceSEK, product.PriceSEK);
+                    //.Set(p => p.PriceEUR, product.PriceEUR)
+                    //.Set(p => p.PriceCHF, product.PriceCHF);
+
+                // Update the product document where the name matches (case-insensitive)
+                var result = _productsCollection.UpdateOne(
+                    p => p.Name.Equals(product.Name, StringComparison.OrdinalIgnoreCase),
+                    update
+                );
+
+                // Provide feedback based on the operation result
+                Console.WriteLine(result.MatchedCount > 0
+                    ? "Product updated successfully."
+                    : "Product not found.");
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Error updating product: {ex.Message}");
+                Console.ResetColor();
+            }
+        }
+
+
+
+
         // ===========================
         // Cart Methods
         // ===========================
 
-        // Fetch all cart items for a customer
-        //public async Task<List<CartItem>> GetCartItems(string customerName)
-        //{
-        //    return await _cartCollection
-        //        .Find(c => c.CustomerName.Equals(customerName, StringComparison.OrdinalIgnoreCase))
-        //        .ToListAsync();
-        //}
-       
         public async Task<List<CartItem>> GetCartItems(string customerName)
         {
             var filter = Builders<CartItem>.Filter.Eq(c => c.CustomerName, customerName);
@@ -165,16 +247,6 @@ namespace Simple.Store
                 : "Cart item not found.");
         }
 
-        // Clear cart for a customer
-        //public bool ClearCart(string customerName)
-        //{
-        //    var filter = Builders<CartItem>.Filter.Eq(c => c.CustomerName, customerName);
-        //    var result = _cartCollection.DeleteMany(filter);
-        //    Console.WriteLine(result.DeletedCount > 0
-        //        ? "Cart cleared successfully."
-        //        : "No cart items found to clear.");
-        //    return result.DeletedCount > 0;
-        //}
         // Clear the cart for a customer
         public async Task ClearCart(string customerName)
         {
