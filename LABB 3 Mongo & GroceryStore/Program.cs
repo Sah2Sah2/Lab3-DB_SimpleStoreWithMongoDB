@@ -30,19 +30,6 @@ namespace Simple.Store
             }
         }
 
-        //private static void SeedCustomers()
-        //{
-        //    // Sample customers to be added to MongoDB
-        //    var customer1 = new Customer("Sara", "123");
-        //    var customer2 = new Customer("Jimmy", "456");
-        //    var customer3 = new Customer("Alessia", "789");
-
-        //    // Add customers to the MongoDB collection
-        //    dbContext.AddCustomer(customer1);
-        //    dbContext.AddCustomer(customer2);
-        //    dbContext.AddCustomer(customer3);
-        //}
-
         private static async Task<bool> MainMenu(bool isFirstVisit)
         {
             string username, password;
@@ -82,11 +69,30 @@ namespace Simple.Store
                         return true;
 
                     case "2":
-                        // Prompt for username and password for logging in
+                        // Prompt for username
                         Console.Write("Enter username: ");
                         username = Console.ReadLine();
+
+                        // Prompt for password
                         Console.Write("Enter password: ");
-                        password = Console.ReadLine();
+                        password = string.Empty;
+
+                        ConsoleKeyInfo key;
+                        do
+                        {
+                            key = Console.ReadKey(intercept: true); 
+                            if (key.Key == ConsoleKey.Backspace && password.Length > 0)
+                            {
+                                password = password[0..^1]; 
+                                Console.Write("\b \b"); 
+                            }
+                            else if (!char.IsControl(key.KeyChar))
+                            {
+                                password += key.KeyChar; 
+                                Console.Write("*"); 
+                            }
+                        } while (key.Key != ConsoleKey.Enter); 
+                        Console.WriteLine(); 
 
                         // Log in and check if successful
                         if (LogIn(username, password))
@@ -98,7 +104,7 @@ namespace Simple.Store
                             Console.WriteLine("Invalid credentials.");
                         }
                         return true;
-                    
+
                     case "3":
                         Console.WriteLine("");
                         ShowProductManagementMenu();
@@ -243,6 +249,7 @@ namespace Simple.Store
                     Console.WriteLine("Invalid input. Please try again.");
                 }
             }
+
         }
 
         // Method to add items to the cart
@@ -268,20 +275,16 @@ namespace Simple.Store
                 Console.WriteLine("Cart is empty, nothing to save.");
                 return; // Exit if cart is empty
             }
-
             try
             {
-                // Await the task to get the cart items
                 var cartItems = await dbContext.GetCartItems(loggedInCustomer.Name);
 
                 foreach (var item in cart)
                 {
-                    // Find the existing cart item using LINQ
                     var existingCartItem = cartItems.FirstOrDefault(c => c.ProductName == item.Key.Name);
 
                     if (existingCartItem != null)
                     {
-                        // Update existing cart item quantity
                         existingCartItem.Quantity += item.Value;
                         await dbContext.UpdateCartItem(existingCartItem);  
                         Console.WriteLine($"{item.Key.Name} quantity updated in the cart.");
@@ -322,19 +325,14 @@ namespace Simple.Store
 
             if (input == "y")
             {
-                // Simulate payment confirmation
                 Console.WriteLine("Payment successful!");
 
-                // Update total spent for the logged-in customer
                 loggedInCustomer.TotalSpent += total;
 
-                // Display the updated total spent for the customer
                 Console.WriteLine($"Total spent for {loggedInCustomer.Name} is now {loggedInCustomer.TotalSpent:F2} SEK");
 
-                // Save the updated customer information to the database
                 await UpdateLoggedInCustomerTotalSpent(loggedInCustomer, dbContext);
 
-                // Clear the cart after successful payment
                 cart.Clear();
                 Console.WriteLine("\nCart has been cleared. Thank you for your purchase!");
             }
@@ -347,7 +345,6 @@ namespace Simple.Store
         // Method to update the total spent in MongoDb
         public static async Task UpdateLoggedInCustomerTotalSpent(Customer loggedInCustomer, MongoDbContext dbContext)
         {
-            // Ensure the loggedInCustomer is not null
             if (loggedInCustomer == null)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -355,17 +352,13 @@ namespace Simple.Store
                 Console.ResetColor();
                 return;
             }
-
             try
             {
-                // Log the current state of the logged-in customer before updating
                 Console.WriteLine($"Updating TotalSpent for {loggedInCustomer.Name}. Current TotalSpent: {loggedInCustomer.TotalSpent}");
 
-                // Prepare filter and update definition for MongoDB
                 var filter = Builders<Customer>.Filter.Eq(c => c.Name, loggedInCustomer.Name);
                 var update = Builders<Customer>.Update.Set(c => c.TotalSpent, loggedInCustomer.TotalSpent);
 
-                // Perform the update operation asynchronously using the public property
                 var result = await dbContext.CustomersCollection.UpdateOneAsync(filter, update); 
 
                 // Check if the update was successful
@@ -393,7 +386,6 @@ namespace Simple.Store
         // Method to view the content of the cart when items are saved and not purchased
         private static async Task ViewCart()
         {
-            // Get the cart items for the logged-in customer using the async method
             var cartItems = await dbContext.GetCartItems(loggedInCustomer.Name);
 
             if (cartItems.Any())
@@ -409,7 +401,6 @@ namespace Simple.Store
 
                 Console.WriteLine($"Total: {totalAmount:C}");
 
-                // Prompt the user to pay or go back
                 Console.WriteLine("\nWould you like to pay for the items in your cart?");
                 Console.WriteLine("1) Yes, proceed to payment");
                 Console.WriteLine("2) No, return to the menu");
@@ -420,25 +411,19 @@ namespace Simple.Store
                 switch (choice)
                 {
                     case "1":
-                        // Simulate payment process (you can add actual logic here later)
                         Console.WriteLine($"Processing payment of {totalAmount:C}...");
 
-                        // Simulate payment success
                         bool paymentSuccessful = ProcessPayment(totalAmount);
 
                         if (paymentSuccessful)
                         {
-                            // After successful payment, update totalSpent and save the updated information
                             loggedInCustomer.TotalSpent += totalAmount;
 
-                            // Display the updated total spent
                             Console.WriteLine($"Total spent for {loggedInCustomer.Name} is now {loggedInCustomer.TotalSpent:C}");
 
-                            // Save the updated customer information to the database
                             await UpdateLoggedInCustomerTotalSpent(loggedInCustomer, dbContext);
 
-                            // Clear the cart or mark items as paid
-                            await dbContext.ClearCart(loggedInCustomer.Name); // Clear the cart after payment
+                            await dbContext.ClearCart(loggedInCustomer.Name); 
                             Console.WriteLine("Payment successful! Your cart has been cleared.");
                         }
                         else
@@ -462,11 +447,11 @@ namespace Simple.Store
             }
         }
 
-        // This method simulates the payment process.
+        // This method simulates the payment process
         private static bool ProcessPayment(decimal amount)
         {
             Console.WriteLine($"Payment of {amount:C} processed successfully.");
-            return true; // Return true to indicate payment was successful.
+            return true;
         }
 
         // Method to display all the info of the logged in customer
@@ -481,7 +466,7 @@ namespace Simple.Store
         private static bool LogIn(string username, string password)
         {
             loggedInCustomer = dbContext.GetCustomerByName(username);
-            if (loggedInCustomer != null && loggedInCustomer.VerifyPassword(password)) // Use VerifyPassword method
+            if (loggedInCustomer != null && loggedInCustomer.VerifyPassword(password))
             {
                 Console.WriteLine($"Welcome back, {loggedInCustomer.Name}!");
                 return true;
@@ -522,8 +507,7 @@ namespace Simple.Store
                     // Add the product to the database
                    await dbContext.AddProductToDb(newProduct);
 
-                    // Optional: Fetch the product back from the database to confirm
-                    var addedProduct = dbContext.GetProductByName(productName); // You can create this helper method if needed
+                    var addedProduct = dbContext.GetProductByName(productName); 
 
                     if (addedProduct != null)
                     {
@@ -557,7 +541,5 @@ namespace Simple.Store
                     break;
             }
         }
-
-
     }
 }

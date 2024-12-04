@@ -30,7 +30,7 @@ namespace Simple.Store
         public int Quantity { get; set; }
 
         // MongoDB setup
-        private static readonly IMongoClient MongoClient = new MongoClient("mongodb://localhost:27017/GroceryStore");
+        private static readonly IMongoClient MongoClient = new MongoClient("mongodb+srv://sarabattistella2:DatabaseMongoDB@cluster2.dpzm7.mongodb.net/GroceryStore?retryWrites=true&w=majority");
         private static readonly IMongoDatabase Database = MongoClient.GetDatabase("GroceryStore");
         private static readonly IMongoCollection<Product> ProductCollection = Database.GetCollection<Product>("products");
 

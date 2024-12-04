@@ -2,7 +2,7 @@
 
 public static class DatabaseHelper
 {
-    private static readonly string connectionString = "mongodb://localhost:27017/GroceryStore";
+    private static readonly string connectionString = "mongodb+srv://sarabattistella2:DatabaseMongoDB@cluster2.dpzm7.mongodb.net/GroceryStore?retryWrites=true&w=majority";
     private static readonly string databaseName = "GroceryStore";
 
     private static readonly MongoClient client = new MongoClient(connectionString);

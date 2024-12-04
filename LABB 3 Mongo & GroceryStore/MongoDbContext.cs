@@ -17,7 +17,8 @@ namespace Simple.Store
 
         public MongoDbContext(string dbName)
         {
-            string connectionString = "mongodb://localhost:27017/GroceryStore";
+            //string connectionString = "mongodb://localhost:27017/GroceryStore";
+            string connectionString = "mongodb+srv://sarabattistella2:DatabaseMongoDB@cluster2.dpzm7.mongodb.net/GroceryStore?retryWrites=true&w=majority";
             var client = new MongoClient(connectionString);
             _database = client.GetDatabase(dbName);
             _customersCollection = _database.GetCollection<Customer>("Customers");
@@ -29,6 +30,7 @@ namespace Simple.Store
         // Customer Methods
         // ===========================
 
+        //Method to get customers
         public List<Customer> GetCustomers() => _customersCollection.Find(_ => true).ToList();
 
         public Customer GetCustomerByName(string name)
@@ -36,6 +38,7 @@ namespace Simple.Store
             return _customersCollection.Find(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
         }
 
+        // Method to add a customer
         public void AddCustomer(Customer customer)
         {
             try
@@ -77,6 +80,7 @@ namespace Simple.Store
         // Product Methods
         // ===========================
 
+        // Method to list all the products availabe in the db 
         public async Task<List<Product>> GetProducts()
         {
             try
@@ -102,7 +106,7 @@ namespace Simple.Store
             }
         }
 
-
+        // Method to add a product to the db
         public async Task AddProductToDb(Product product)
         {
             try
@@ -149,6 +153,7 @@ namespace Simple.Store
             }
         }
 
+        // Method to remove a product from the db
         public void RemoveProductFromDb(string productName)
         {
             try
@@ -222,7 +227,6 @@ namespace Simple.Store
         // ===========================
         // Helper Methods
         // ===========================
-
 
         // Helper method to check if the customer exists
         private bool CustomerExists(string name)

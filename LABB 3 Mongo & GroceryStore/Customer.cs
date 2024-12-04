@@ -22,7 +22,7 @@ namespace Simple.Store
         public decimal TotalSpent { get; set; }
 
         // MongoDB collections for customers and carts
-        private static IMongoCollection<Customer> _customersCollection;
+        private static IMongoCollection<Customer> _customersCollection; // Collection for customers
         private static IMongoCollection<Cart> _cartCollection; // Collection for carts
 
 
@@ -31,7 +31,7 @@ namespace Simple.Store
         {
             try
             {
-                var client = new MongoClient("mongodb://localhost:27017/GroceryStore");
+                var client = new MongoClient("mongodb://localhost:27017/GroceryStore"); // String
                 var database = client.GetDatabase("GroceryStore"); // MongoDB database name
                 _customersCollection = database.GetCollection<Customer>("Customer"); // Customer collection
                 _cartCollection = database.GetCollection<Cart>("Cart"); // Cart collection
@@ -45,7 +45,6 @@ namespace Simple.Store
             }
         }
 
-        // Public static property to expose _customersCollection
         public static IMongoCollection<Customer> CustomersCollection
         {
             get
@@ -69,8 +68,6 @@ namespace Simple.Store
             {
                 return false; 
             }
-
-            // Compare passwords after trimming whitespaces
             return Password.Trim() == password.Trim();
         }
 
@@ -85,7 +82,7 @@ namespace Simple.Store
         // Method to get the password conditionally
         public string GetPassword(bool showPassword)
         {
-            return showPassword ? Password : new string('*', Password.Length); // Show or hide password
+            return showPassword ? Password : new string('*', Password.Length);      
         }
 
         // LogIn method 
@@ -94,7 +91,6 @@ namespace Simple.Store
             username = string.Empty;
             password = string.Empty;
 
-            // Debugging output to confirm customer loading
             Console.WriteLine($"Debug: Customers count before login: {_customersCollection.CountDocuments(FilterDefinition<Customer>.Empty)}");
 
             Console.ForegroundColor = ConsoleColor.Blue;
@@ -224,6 +220,7 @@ namespace Simple.Store
             return false;
         }
 
+        // Method for registering
         public static bool AskToRegister()
         {
             while (true)
