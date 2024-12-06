@@ -154,7 +154,9 @@ namespace Simple.Store
                         return true;
 
                     case "4":
-                        Console.WriteLine("You have been logged out.");
+                        Console.ForegroundColor = ConsoleColor.DarkRed;
+                        Console.WriteLine("\nYou have been logged out.");
+                        Console.ResetColor();
                         isLoggedIn = false;
                         return false;
 
@@ -228,7 +230,9 @@ namespace Simple.Store
                     else
                     {
                         await SaveCartToMongoDb(cart, loggedInCustomer, dbContext);
-                        Console.WriteLine("Cart saved for later. Returning to main menu...");
+                        Console.WriteLine("Your cart is saved for later. Returning to main menu...");
+                        Console.WriteLine("\nPress any key to contine");
+                        Console.ReadKey();
                         return; // Exit shopping
                     }
                 }
@@ -303,8 +307,9 @@ namespace Simple.Store
                         Console.WriteLine($"{item.Key.Name} added to the cart.");
                     }
                 }
-
-                Console.WriteLine("Cart items saved successfully.");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("\nCart items saved successfully.");
+                Console.ResetColor();
             }
             catch (Exception ex)
             {
@@ -325,20 +330,27 @@ namespace Simple.Store
 
             if (input == "y")
             {
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Payment successful!");
+                Console.ResetColor();
 
                 loggedInCustomer.TotalSpent += total;
 
-                Console.WriteLine($"Total spent for {loggedInCustomer.Name} is now {loggedInCustomer.TotalSpent:F2} SEK");
+                Console.WriteLine($"\nTotal spent for {loggedInCustomer.Name} is now {loggedInCustomer.TotalSpent:F2} SEK");
 
                 await UpdateLoggedInCustomerTotalSpent(loggedInCustomer, dbContext);
 
                 cart.Clear();
                 Console.WriteLine("\nCart has been cleared. Thank you for your purchase!");
+                Console.Write("\n\nPress any key to continue.");
+                Console.ReadKey();
             }
             else
             {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("\nPayment canceled. Returning to shopping...");
+                Console.ResetColor();
+                Console.ReadKey();
             }
         }
 
@@ -354,7 +366,7 @@ namespace Simple.Store
             }
             try
             {
-                Console.WriteLine($"Updating TotalSpent for {loggedInCustomer.Name}. Current TotalSpent: {loggedInCustomer.TotalSpent}");
+                //Console.WriteLine($"Updating TotalSpent for {loggedInCustomer.Name}. Current TotalSpent: {loggedInCustomer.TotalSpent}"); // Debugging line
 
                 var filter = Builders<Customer>.Filter.Eq(c => c.Name, loggedInCustomer.Name);
                 var update = Builders<Customer>.Update.Set(c => c.TotalSpent, loggedInCustomer.TotalSpent);
@@ -364,9 +376,7 @@ namespace Simple.Store
                 // Check if the update was successful
                 if (result.ModifiedCount > 0)
                 {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"Successfully updated the TotalSpent for {loggedInCustomer.Name}.");
-                    Console.ResetColor();
+                    //Console.WriteLine($"Successfully updated the TotalSpent for {loggedInCustomer.Name}."); // Debugging line
                 }
                 else
                 {
@@ -411,7 +421,7 @@ namespace Simple.Store
                 switch (choice)
                 {
                     case "1":
-                        Console.WriteLine($"Processing payment of {totalAmount:C}...");
+                        //Console.WriteLine($"Processing payment of {totalAmount:C}..."); // Debugging line
 
                         bool paymentSuccessful = ProcessPayment(totalAmount);
 
@@ -423,8 +433,10 @@ namespace Simple.Store
 
                             await UpdateLoggedInCustomerTotalSpent(loggedInCustomer, dbContext);
 
-                            await dbContext.ClearCart(loggedInCustomer.Name); 
-                            Console.WriteLine("Payment successful! Your cart has been cleared.");
+                            await dbContext.ClearCart(loggedInCustomer.Name);
+                            //Console.WriteLine("Payment successful!");
+                            //Console.WriteLine("Your cart has been cleared.");
+                            Console.ReadKey();
                         }
                         else
                         {
@@ -443,21 +455,27 @@ namespace Simple.Store
             }
             else
             {
-                Console.WriteLine("Your cart is empty.");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("\nYour cart is empty.");
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("\nPress any key to continue");
+                Console.ReadKey();
             }
         }
 
         // This method simulates the payment process
         private static bool ProcessPayment(decimal amount)
         {
-            Console.WriteLine($"Payment of {amount:C} processed successfully.");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"\nPayment of {amount:C} processed successfully.");
+            Console.ResetColor();
             return true;
         }
 
         // Method to display all the info of the logged in customer
         private static void DisplayAccountInformation()
         {
-            Console.WriteLine($"Customer: {loggedInCustomer.Name}");
+            Console.WriteLine($"\nCustomer: {loggedInCustomer.Name}");
             Console.WriteLine($"Membership Status: {loggedInCustomer.GetMembershipStatus()}");
             Console.WriteLine($"Total Spent: {loggedInCustomer.TotalSpent:C}");
         }
@@ -511,7 +529,9 @@ namespace Simple.Store
 
                     if (addedProduct != null)
                     {
-                        Console.WriteLine($"Product '{addedProduct.Name}' was added successfully with a price of {addedProduct.PriceSEK} SEK.");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine($"\nProduct '{addedProduct.Name}' was added successfully with a price of {addedProduct.PriceSEK} SEK.");
+                      
                     }
                     else
                     {

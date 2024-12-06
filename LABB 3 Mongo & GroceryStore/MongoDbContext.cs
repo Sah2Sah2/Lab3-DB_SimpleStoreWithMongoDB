@@ -128,7 +128,7 @@ namespace Simple.Store
 
                 // Insert the product into the database
                 await _productsCollection.InsertOneAsync(product);
-                Console.WriteLine($"Product '{product.Name}' added successfully.");
+                //Console.WriteLine($"Product '{product.Name}' added successfully."); // Debugging line
             }
             catch (Exception ex)
             {
@@ -159,7 +159,7 @@ namespace Simple.Store
             try
             {
                 var result = _productsCollection.DeleteOne(p => p.Name.Equals(productName, StringComparison.OrdinalIgnoreCase));
-                Console.WriteLine(result.DeletedCount > 0 ? $"Product '{productName}' removed successfully." : $"Product '{productName}' not found.");
+                Console.WriteLine(result.DeletedCount > 0 ? $"\nProduct '{productName}' removed successfully." : $"Product '{productName}' not found.");
             }
             catch (Exception ex)
             {
@@ -184,7 +184,6 @@ namespace Simple.Store
             return await _cartCollection.Find(filter).ToListAsync(); // Retrieve the cart items for the specified customer
         }
 
-
         // Add a cart item to MongoDB
         public async Task AddCartItem(CartItem cartItem)
         {
@@ -196,7 +195,7 @@ namespace Simple.Store
 
             // Add cart item to MongoDB
             await _cartCollection.InsertOneAsync(cartItem);
-            Console.WriteLine("Cart item added successfully.");
+            Console.WriteLine("\n\nCart item added successfully.");
         }
 
         // Update cart items in MongoDB
@@ -212,7 +211,7 @@ namespace Simple.Store
 
             var result = await _cartCollection.UpdateOneAsync(filter, update);
             Console.WriteLine(result.MatchedCount > 0
-                ? "Cart item updated successfully."
+                ? "\nCart item updated successfully."
                 : "Cart item not found.");
         }
 
@@ -221,7 +220,7 @@ namespace Simple.Store
         {
             var filter = Builders<CartItem>.Filter.Eq(c => c.CustomerName, customerName);
             var result = await _cartCollection.DeleteManyAsync(filter);
-            Console.WriteLine(result.DeletedCount > 0 ? "Cart cleared successfully." : "No cart items found to clear.");
+            Console.WriteLine(result.DeletedCount > 0 ? "\nCart cleared." : "No cart items found to clear.");
         }
 
         // ===========================

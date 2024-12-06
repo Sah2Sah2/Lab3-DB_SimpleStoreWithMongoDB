@@ -40,13 +40,13 @@ namespace Simple.Store
             return convertedAmount;
         }
 
-        // Convert a given amount to EUR (from any supported currency)
+        // Convert a given amount to EUR
         public static decimal ConvertToEUR(decimal amount, string fromCurrency)
         {
             return ConvertAmount(amount, fromCurrency, "EUR");
         }
 
-        // Convert a given amount to CHF (from any supported currency)
+        // Convert a given amount to CHF 
         public static decimal ConvertToCHF(decimal amount, string fromCurrency)
         {
             return ConvertAmount(amount, fromCurrency, "CHF");
